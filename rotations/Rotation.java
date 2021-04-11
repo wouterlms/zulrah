@@ -12,6 +12,7 @@ public abstract class Rotation {
     protected int totalPhases = 0;
     protected int currentAnimationCount;
     protected int ticks = 0;
+    protected boolean hasCompletedRotation = false;
     protected boolean isZulrahReady = true;
     protected boolean dontAttack = false;
 
@@ -33,6 +34,7 @@ public abstract class Rotation {
         if (currentPhase == totalPhases) {
             System.out.println("@reset");
             this.currentPhase = 1;
+            this.hasCompletedRotation = true;
         } else {
             System.out.println("@nextPhase");
             this.currentPhase++;

@@ -3,10 +3,7 @@ package net.runelite.client.plugins.zulrah;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
-import net.runelite.api.events.AnimationChanged;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.events.NpcSpawned;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.eventbus.Subscribe;
@@ -35,6 +32,23 @@ import java.util.Random;
 @Slf4j
 public class ZulrahPlugin extends Plugin implements KeyListener {
 
+  /**
+   *
+   *
+   * up 38
+   * l 37
+   * r 39
+   * down 40
+   *
+   *
+   *
+   */
+
+  private final static int ARROW_LEFT = 37;
+  private final static int ARROW_UP = 38;
+  private final static int ARROW_RIGHT = 39;
+  private final static int ARROW_DOWN = 40;
+
   private final static int ZULRAH_SHOOT_ANIMATION = 5069;
   private final static int ZULRAH_DIVE_ANIMATION = 5072;
   private final static int ZULRAH_APPEAR_ANIMATION = 5073;
@@ -42,12 +56,13 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
   private final static int ZULRAH_RANGE = 2042;
   private final static int ZULRAH_MELEE = 2043;
   private final static int ZULRAH_MAGE = 2044;
-  private final static String[] MAGE_EQUIPMENT = {"Trident of the swamp", "Mystic robe top", "Mystic robe bottom", "Unholy book", "Occult necklace"};
-  private final static String[] RANGE_EQUIPMENT = {"Black d'hide chaps", "Black d'hide body", "Necklace of anguish", "Toxic blowpipe", "Ava's accumulator"};
+  private final static String[] MAGE_EQUIPMENT = {"Trident of the swamp", "Infinity top", "Infinity bottoms", "Mage's book", "Occult necklace", "Saradomin cape"};
+  private final static String[] RANGE_EQUIPMENT = {"Armadyl chaps", "Armadyl d'hide body", "Necklace of anguish", "Toxic blowpipe", "Ava's accumulator"};
   private Mouse mouse;
   private Inventory inventory;
   private Prayer prayer;
   private LocalPlayer player;
+
   @Inject
   private Client client;
 
@@ -74,11 +89,11 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
 
   private boolean abort = false;
 
+
   private boolean isSwitchingGear = false;
   private boolean isSwitchingPrayers = false;
   private boolean isEating = false;
-  private boolean isDrinkingAntiVenom = false;
-  private boolean isUsingSpecialAttack = false;
+  private boolean isMovingCamera = false;
 
   /**
    * zulrah id: 2042
@@ -117,18 +132,31 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
   protected void onGameTick(GameTick gameTick) {
     // checken wanneer zulrah is "ready to attack
     // camera rotaten
-    // System.out.println("distance to pos: " + player.distanceTo(rotation.getStandPosition().getPosition()));
-    if (!hasStarted || abort) {
+    Widget returnToZulrahsShrine = client.getWidget(219, 1);
+    Widget ready = client.getWidget(229, 1);
+
+    if (returnToZulrahsShrine != null && returnToZulrahsShrine.getChild(0).getText().equals("Return to Zulrah's shrine?")) {
+      pressKey(KeyEvent.KEY_PRESSED, KeyEvent.VK_NUMPAD1);
+      pressKey(KeyEvent.KEY_RELEASED, KeyEvent.VK_NUMPAD1);
+    }
+
+    if (ready != null) {
+      System.out.println("Text: " + ready.getText());
+    }
+
+    if (ready != null && ready.getText().equals("The priestess rows you to Zulrah's shrine,<br>then hurriedly paddles away.")) {
+      System.out.println("GO");
+      hasStarted = true;
+      rotation = new UnknownRotation();
+    }
+
+    if (abort) {
       return;
     }
 
-        /*
-        if (zulrah != null && zulrah.getHealthRatio() == 0) {
-            System.out.println("finished!");
-            System.out.println("zulrah anim: " + zulrah.getAnimation());
-            hasStarted = false;
-        }
-         */
+    if (!hasStarted || abort) {
+      return;
+    }
 
     rotation.increaseTicks();
 
@@ -167,29 +195,28 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
     boolean hasCorrectEquipment = !inventory.containsAnyOf(equipment);
     boolean shouldAttack =
             !rotation.getDontAttack() &&
-                    !player.hasTarget() &&
-                    player.distanceTo(rotation.getStandPosition().getPosition()) < 4 &&
-                    rotation.isZulrahReady();
-
+            !player.hasTarget() &&
+            player.distanceTo(rotation.getStandPosition().getPosition()) < 2 &&
+            rotation.isZulrahReady();
     boolean shouldPrayPot = inventory.containsAnyOf(new String[]{"Prayer potion(1)", "Prayer potion(2)", "Prayer potion(3)", "Prayer potion(4)"}) && client.getBoostedSkillLevel(Skill.PRAYER) < 10 && !isEating;
     boolean isPoisened = client.getVar(VarPlayer.IS_POISONED) > 0;
-
-    // misschien kijken of spec aan staat of niet
     boolean canSpec = player.getSpecialAttack() >= 50 &&
             player.getHealth() < 80 &&
             rotation.getEquipment() == Equipment.RANGE &&
             !player.isSpecialAttackEnabled();
 
 
+    boolean moveCamera = player.hasTarget() &&  client.getCameraPitch() < 330 || client.getCameraYaw() < 930 || client.getCameraYaw() > 1070;
+
+
     // walk to location
     if (!player.isMoving() && rotation != null && !isEqualLocalPoint(client.getLocalPlayer().getLocalLocation(), rotation.getStandPosition().getPosition())) {
-      mouse.clickLocalPoint(rotation.getStandPosition().getPosition(), true);
+      mouse.clickLocalPoint(rotation.getStandPosition().getPosition(), player.distanceTo(rotation.getStandPosition().getPosition()) > 4);
     }
     // use correct prayer
     else if (
             !isSwitchingPrayers &&
-                    rotation.getPrayers().size() != 0 &&
-                    (!prayer.areAllEnabled(rotation.getPrayers()) || prayer.areAnyEnabledExcept(rotation.getPrayers()))
+            (!prayer.areAllEnabled(rotation.getPrayers()) || prayer.areAnyEnabledExcept(rotation.getPrayers()))
     ) {
       prayer.enable(rotation.getPrayers(), true);
     }
@@ -216,6 +243,10 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
     // spec
     else if (canSpec) {
       useSpecialAttack();
+    }
+    else if (moveCamera && !isMovingCamera) {
+      System.out.println("Moving camera");
+      moveCamera();
     }
   }
 
@@ -252,6 +283,7 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
       if (actor.getAnimation() == ZULRAH_DIVE_ANIMATION) {
         rotation.setIsZulrahReady(false);
         rotation.nextPhase();
+        System.out.println("Wave: " + rotation.getCurrentPhase());
       }
 
       if (actor.getAnimation() == ZULRAH_APPEAR_ANIMATION) {
@@ -281,16 +313,50 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
 
   @Override
   public void keyPressed(KeyEvent e) {
-    //System.out.println(e.getKeyCode());
-
+    System.out.println(e.getKeyCode());
     if (e.getKeyCode() == 61 && hasStarted) {
       abort = true;
     }
+  }
 
-    if (e.getKeyCode() == 61 && !hasStarted) {
-      hasStarted = true;
-      rotation = new UnknownRotation();
+  private void moveCamera() {
+    final int pitch = randomNumber(330, 350);
+    final int yaw = randomNumber(950, 1050);
+
+    if (client.getCameraPitch() < pitch) {
+      new Thread(() -> {
+        pressKey(KeyEvent.KEY_PRESSED, ARROW_UP);
+
+        while (client.getCameraPitch() < pitch) {
+          isMovingCamera = true;
+        }
+
+        isMovingCamera = false;
+        pressKey(402, ARROW_UP);
+      }).start();
     }
+
+    if (client.getCameraYaw() < yaw - 30 || client.getCameraYaw() > yaw + 30) {
+      new Thread(() -> {
+        pressKey(KeyEvent.KEY_PRESSED, ARROW_RIGHT);
+
+        while (client.getCameraYaw() < yaw - 30 || client.getCameraYaw() > yaw + 30) {
+          System.out.println("Moving yaw from " + client.getCameraYaw() + " to " + yaw);
+          isMovingCamera = true;
+        }
+
+        isMovingCamera = false;
+        pressKey(KeyEvent.KEY_RELEASED, ARROW_RIGHT);
+      }).start();
+    }
+  }
+
+  private void pressKey(int id, int keycode) {
+    KeyEvent e = new KeyEvent(
+            getClient().getCanvas(), id, System.currentTimeMillis(), 0, keycode, KeyEvent.CHAR_UNDEFINED
+    );
+
+    getClient().getCanvas().dispatchEvent(e);
   }
 
   @Override
@@ -331,10 +397,8 @@ public class ZulrahPlugin extends Plugin implements KeyListener {
     final int yy = randomNumber(y + 10, y + height - 10);
 
     (new Thread(() -> {
-      isUsingSpecialAttack = true;
       mouse.clickAt(xx, yy);
       sleep(600);
-      isUsingSpecialAttack = false;
     })).start();
   }
 

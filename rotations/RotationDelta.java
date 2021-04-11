@@ -49,6 +49,7 @@ public class RotationDelta extends Rotation{
             case 2:
             case 4:
             case 8:
+            case 10:
             case 12:
                 return Equipment.RANGE;
             case 3:
@@ -56,7 +57,6 @@ public class RotationDelta extends Rotation{
             case 6:
             case 7:
             case 9:
-            case 10:
             case 11:
                 return Equipment.MAGE;
         }

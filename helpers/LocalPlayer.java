@@ -14,7 +14,7 @@ public class LocalPlayer {
 
     public boolean isMoving() {
        //return plugin.getClient().getLocalDestinationLocation() != null;
-        return plugin.getClient().getLocalPlayer().getIdlePoseAnimation() != plugin.getClient().getLocalPlayer().getPoseAnimation();
+       return plugin.getClient().getLocalPlayer().getIdlePoseAnimation() != plugin.getClient().getLocalPlayer().getPoseAnimation();
     }
 
     public boolean hasTarget() {
@@ -27,7 +27,10 @@ public class LocalPlayer {
 
     public int distanceTo(LocalPoint point) {
         LocalPoint playerPoint = plugin.getClient().getLocalPlayer().getLocalLocation();
-        return (int) Math.sqrt(Math.pow(playerPoint.getX() - point.getX(), 2) + Math.pow(playerPoint.getY() - playerPoint.getY(), 2));
+        int d = (int) Math.sqrt(Math.pow(playerPoint.getX() - point.getX(), 2) + Math.pow(playerPoint.getY() - point.getY(), 2));
+
+        // idk
+        return (int) Math.floor(d / 120);
     }
 
     public int getSpecialAttack() {

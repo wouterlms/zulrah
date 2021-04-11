@@ -5,6 +5,7 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.zulrah.ZulrahPlugin;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 
 public class Prayer {
@@ -21,8 +22,9 @@ public class Prayer {
     }
 
     public void enable(ArrayList<net.runelite.client.plugins.zulrah.enums.Prayer> prayers, boolean turnOffOthers) {
-        robot.keyPress(FKEY_PRAYERS);
-        robot.keyRelease(FKEY_PRAYERS);
+        pressKey(401, FKEY_PRAYERS);
+        pressKey(402, FKEY_PRAYERS);
+        //pressKey(400, FKEY_PRAYERS);
 
         ArrayList<net.runelite.client.plugins.zulrah.enums.Prayer> prayersToEnable = new ArrayList<>();
         ArrayList<net.runelite.client.plugins.zulrah.enums.Prayer> prayersToDisable = new ArrayList<>();
@@ -92,5 +94,13 @@ public class Prayer {
         }
 
         return false;
+    }
+
+    private void pressKey(int id, int keycode) {
+        KeyEvent e = new KeyEvent(
+                plugin.getClient().getCanvas(), id, System.currentTimeMillis(), 0, keycode, KeyEvent.CHAR_UNDEFINED
+        );
+
+        plugin.getClient().getCanvas().dispatchEvent(e);
     }
 }

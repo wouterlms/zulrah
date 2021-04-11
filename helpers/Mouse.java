@@ -8,6 +8,7 @@ import net.runelite.api.coords.LocalPoint;
 import net.runelite.client.plugins.zulrah.ZulrahPlugin;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
 
 public class Mouse {
     private final Robot robot;
@@ -20,17 +21,35 @@ public class Mouse {
     }
 
     public void clickAt(int x, int y) {
-        System.out.println("click at " + x + ", " + y);
-
         new Thread(() -> {
-            robot.mouseMove(
-                    x + plugin.getScreenOffsetX(),
-                    y + plugin.getScreenOffsetY()
-            );
+            boolean isMouseOnCanvas = plugin.getClient().getCanvas().getMousePosition() != null;
 
-            plugin.sleep(20);
-            click();
+            /*
+            if (isMouseOnCanvas) {
+                robot.mouseMove(
+                        x + plugin.getScreenOffsetX(),
+                        y + plugin.getScreenOffsetY()
+                );
+                plugin.sleep(20);
+                click();
+            } else
+            {
+             */
+                canvasMouseEvent(x, y, MouseEvent.MOUSE_MOVED);
+                plugin.sleep(20);
+                canvasMouseEvent(x, y, MouseEvent.MOUSE_PRESSED);
+                canvasMouseEvent(x, y, MouseEvent.MOUSE_RELEASED);
+                canvasMouseEvent(x, y, MouseEvent.MOUSE_CLICKED);
+            //}
         }).start();
+    }
+
+    private void canvasMouseEvent(int x, int y, int id) {
+        MouseEvent e = new MouseEvent(
+                plugin.getClient().getCanvas(), id, System.currentTimeMillis(), MouseEvent.NOBUTTON, x, y, 1, false
+        );
+
+        plugin.getClient().getCanvas().dispatchEvent(e);
     }
 
     public void click() {
@@ -62,6 +81,7 @@ public class Mouse {
     }
 
     public void clickNpc(NPC npc) {
+        /*
         final Polygon tile = Perspective.getCanvasTilePoly(plugin.getClient(), npc.getLocalLocation());
 
         int x = (int) tile.getBounds().getCenterX();
@@ -71,5 +91,9 @@ public class Mouse {
         y = plugin.randomNumber(y - 5, y + 5);
 
         clickAt(x, y);
+
+         */
+
+        clickLocalPoint(npc.getLocalLocation(), false);
     }
 }

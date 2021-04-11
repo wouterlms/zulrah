@@ -10,6 +10,7 @@ import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.plugins.zulrah.ZulrahPlugin;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -156,8 +157,8 @@ public class Inventory {
     private void clickSlot(final int slot)
     {
         if (plugin.getClient().getVar(VarClientInt.INVENTORY_TAB) != 3) {
-            robot.keyPress(FKEY_INVENTORY);
-            robot.keyRelease(FKEY_INVENTORY);
+            pressKey(401, FKEY_INVENTORY);
+            pressKey(402, FKEY_INVENTORY);
         }
 
         Widget inventoryWidget = plugin.getClient().getWidget(WidgetInfo.INVENTORY);
@@ -179,5 +180,13 @@ public class Inventory {
         y = plugin.randomNumber(y + 10, y + height - 10);
 
         plugin.getMouse().clickAt(x, y);
+    }
+
+    private void pressKey(int id, int keycode) {
+        KeyEvent e = new KeyEvent(
+                plugin.getClient().getCanvas(), id, System.currentTimeMillis(), 0, keycode, KeyEvent.CHAR_UNDEFINED
+        );
+
+        plugin.getClient().getCanvas().dispatchEvent(e);
     }
 }
